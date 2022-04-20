@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "automed-cl",
+  "private_key_id": "f49ad140fdd6e250580c665fe517bf65ef2bb6ca",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEuwIBADANBgkqhkiG9w0BAQEFAASCBKUwggShAgEAAoIBAQDJcQixoYpglTyU\nuuvD487V2d6jlJ+d7pp8/5C8wPGUyGfYcsl2opbCGoER/MlWGYQyORyDz9nlYhll\nfS13XAGBo+8syp8dl+YBvxp5PztHVhdcySDja2zaYpRuGmCnzavm5Nfss9CsnZXA\n/R13k2EUTCNdUpKjiYx1ahF3Bs52Wdz/4udlRo1cv+KkszOAWt94fJzcc6tzjKJv\nUjuXitzkrxIQJKChHqDFIs4A+blFHTxo0g3z9UgnRelZJWo/ZFxkAe2nUOlvLxO0\nbRn5vezlg6FrErXXeAfNNhuRKon+b3MDNQYCa/QUqDF0fC2weZz3nCKg+o0wytQM\ngF6vwy9BAgMBAAECgf9Gr+OHxv1H5xaFxRH2gM+T5gq6XEJRU+k3nnarxbOrAf1u\nzC47SH1JSlkAdt7agm8L21P7l8mz3zi05GLlVOPdGimpDhvHxrBvlx/dwX02YH98\n5RclYWJRP/ErXGuOdshbvZyySGccK4WMCJt5L75hNlaH6PHhcThYpgp65L3jyVre\n3eWYfTcpvy6A1pLOpkmPppbpu3K6MGjq/zBbpJdWO/WfLB6Mq8HOBP0Ho0VQ07p3\nqG3Gc8FI/S3ZHe2Zy1rc5HYTtPZODVV9ZOG7OeSk6O7BnHt/hHxRBi1sH6klIUTr\nKnQkKXddSw/eZgOqIEpRB2sLYO+02cDa09dv5uECgYEA5pK1ubXYrGk8m/BhghUh\nzBV4tyX8KfMb3PbAKjGI4oNYKKnbqbE66dOZ8juGBU1Rs6d/TjU8mbN6iUCvqDLk\nVl3ga3so05v8pcqsv5Ok887sdWs05ncU5BQ6wawcNw9F8HMtWCui87iu4OhEsMhj\n8XnFC4ksqJUOaQrzm26do8kCgYEA36fp7D+qQtU5JqUQZ9yThbmiGkA8iEQ0iVJd\nhMBA0R3rM+cYyDwBPPMfDuz9DtELhvdRJRnG2AwIvxNXhg8w1SFywHqFEJEjT2WK\nGXKdIVqYYLh/kF72a+nf0jXj0PsoVFqLmupnVFnPQOM+8gpbJEsPanm/svh78FuP\nhyGUu7kCgYBcjNMI4idAvVUouspI7raMNqonycV4CS9L+HeV+CAb2+DNIbEcYhll\nthv7EU1wX2LGHBuLhu72OwaahS5880CYMkJcoij3F4vH+JxyoY76ljpvv0KSp4Xp\nLv2Os8j3iNfn9jNjStCzx5PajyDTXPxQ9zHSuZMFcB9CprS11SbNkQKBgQC+N/a5\nKtCpNOX9myff3fdOJbrb7sRM9Q1lubq2HDlEYdjX9PXb30UCTJievirgPiU6rf/C\nuTCoMVwC/vVSnHrg2ijZ0Zp4o6hPb8HLsPI5Gu88W86KwGl/EJN/Grxe0i3TyIqx\nwCkP0a52to+jlfE8ZeZ/nXrQQYxPud/Rg1sXaQKBgByw0eXqze0aZ/Kv91amMzji\nrqIhvmttCSGY6hDMzze6g61wR5zVIdOKlXKyDD7gWDhibRGTGSOkCfAE2IQmLOmL\nJWIRwb4KXQTWXohg47W8koR72MqmhTO7Eol0ffvj9O97zyvmPtnKpmLOyEzKKtpj\n9PWrU1vWBhvN0W+5D3Yi\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-gtb5p@automed-cl.iam.gserviceaccount.com",
+  "client_id": "109914986092162229184",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-gtb5p%40automed-cl.iam.gserviceaccount.com"
+}
