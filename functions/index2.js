@@ -8,16 +8,28 @@ admin.initializeApp();
 
 const app = express();
 const db = admin.firestore();
+
 const centrosPath = 'centros';
+const adminsPath = 'admins';
+const medicoPath = 'medicos';
+const farmaceuticosPath = 'farmaceuticos';
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
+
+// ------------------------------------------------- \\
+//                      STATUS                       \\
+// ------------------------------------------------- \\
 // STATUS
 app.get('/status/', (rep, res) => {
     return res.status(200).send('Web API: ONLINE')
 });
 
+
+// ------------------------------------------------- \\
+//                     CENTORS                       \\
+// ------------------------------------------------- \\
 // CREAR NUEVO CENTRO
 app.post('/centro/', async (req, res) => {
     try {
@@ -70,4 +82,149 @@ app.get('/centros/:centro_id', async (req, res) => {
     }        
 });
 
+
+// ------------------------------------------------- \\
+//                      STATUS                       \\
+// ------------------------------------------------- \\
+// NEW ADMIN USER
+app.post('/new-admin/', async (req, res) => {
+    
+    // Variables del request
+    const correo = req.body.correo;
+    const nombre = req.body.nombre;
+    const apaterno = req.body.apaterno;
+    const amaterno = req.body.amaterno;
+    const displayName = nombre +' '+ apaterno +' '+ amaterno
+
+    try {
+        // Crear usuario en Auth
+        await admin.auth().createUser({
+            email: correo,
+            emailVerified: true,
+            password: req.body.password,
+            displayName: displayName,
+            disabled: false
+          })
+            // Almacenar datos del usuario en Firestore
+            .then(function(userRecord) {
+                try {
+                    db.collection(adminsPath)
+                    .doc(userRecord.uid)
+                    .create({
+                        correo: correo,
+                        nombre: nombre,
+                        apaterno: apaterno,
+                        amaterno: amaterno
+                    });
+                    return res.status(201).send(`Nuevo usuario admin creado: ${displayName}`);
+                } catch (error) {
+                    res.status(400).send(`Error: SE HA CREADO EL USUARIO, PERO NO SE ALAMCENARON LOS DATOS. ${error}`);
+                }
+            })
+            .catch(function(error) {
+                res.status(400).send(`Error: ${error}`);
+            });
+    } catch (error) {
+        res.status(500).send(`${error}`)
+    }
+});
+
+// NEW MEDICO USER
+app.post('/new-medico/', async (req, res) => {
+    
+    // Variables del request
+    const rut = req.body.rut;
+    const correo = req.body.correo;
+    const nombre = req.body.nombre;
+    const apaterno = req.body.apaterno;
+    const amaterno = req.body.amaterno;
+    const especialidad = req.body.especialidad;
+    const idCentroMedico = req.body.idCentroMedico;
+    const displayName = nombre +' '+ apaterno +' '+ amaterno
+
+    try {
+        // Crear usuario en Auth
+        await admin.auth().createUser({
+            email: correo,
+            emailVerified: true,
+            password: req.body.password,
+            displayName: displayName,
+            disabled: false
+          })
+            // Almacenar datos del usuario en Firestore
+            .then(function(userRecord) {
+                try {
+                    db.collection(medicoPath)
+                    .doc(userRecord.uid)
+                    .create({
+                        rut: rut,
+                        correo: correo,
+                        nombre: nombre,
+                        apaterno: apaterno,
+                        amaterno: amaterno,
+                        especialidad: especialidad,
+                        idCentroMedico: idCentroMedico
+                    });
+                    return res.status(201).send(`Nuevo usuario medico creado: ${displayName}`);
+                } catch (error) {
+                    res.status(400).send(`Error: SE HA CREADO EL USUARIO, PERO NO SE ALAMCENARON LOS DATOS. ${error}`);
+                }
+            })
+            .catch(function(error) {
+                res.status(400).send(`Error: ${error}`);
+            });
+    } catch (error) {
+        res.status(500).send(`${error}`)
+    }
+});
+
+// NEW FARMACEUTICO USER
+app.post('/new-farmaceutico/', async (req, res) => {
+    
+    // Variables del request
+    const rut = req.body.rut;
+    const correo = req.body.correo;
+    const nombre = req.body.nombre;
+    const apaterno = req.body.apaterno;
+    const amaterno = req.body.amaterno;
+    const idCentroMedico = req.body.idCentroMedico;
+    const displayName = nombre +' '+ apaterno +' '+ amaterno
+
+    try {
+        // Crear usuario en Auth
+        await admin.auth().createUser({
+            email: correo,
+            emailVerified: true,
+            password: req.body.password,
+            displayName: displayName,
+            disabled: false
+          })
+            // Almacenar datos del usuario en Firestore
+            .then(function(userRecord) {
+                try {
+                    db.collection(farmaceuticosPath)
+                    .doc(userRecord.uid)
+                    .create({
+                        rut: rut,
+                        correo: correo,
+                        nombre: nombre,
+                        apaterno: apaterno,
+                        amaterno: amaterno,
+                        idCentroMedico: idCentroMedico
+                    });
+                    return res.status(201).send(`Nuevo usuario farmaceutico creado: ${displayName}`);
+                } catch (error) {
+                    res.status(400).send(`Error: SE HA CREADO EL USUARIO, PERO NO SE ALAMCENARON LOS DATOS. ${error}`);
+                }
+            })
+            .catch(function(error) {
+                res.status(400).send(`Error: ${error}`);
+            });
+    } catch (error) {
+        res.status(500).send(`${error}`)
+    }
+});
+
+
+//---------------------------------------------------
 exports.webApi = functions.https.onRequest(app);
