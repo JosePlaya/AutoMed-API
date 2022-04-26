@@ -356,6 +356,8 @@ app.post('/medicamento/', async (req, res) => {
     }        
 });
 
+//...
+
 // ACTUALIZAR UN MEDICAMENTO
 app.patch('/medicamento/:med_id', async (req, res) => {
     try {
