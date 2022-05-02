@@ -82,6 +82,12 @@ app.get('/centros/', async (req, res) => {
         const querySnapshot = await query.get();
         const docs = querySnapshot.docs;
 
+        // Verificar que existan datos
+        if(querySnapshot.size == 0){
+            // No hay centros
+            return res.status(404).send(`No exsten centros`)
+        }
+
         const response = docs.map((doc) => ({
             id: doc.id,
             nombre: doc.data().nombre,
@@ -93,7 +99,7 @@ app.get('/centros/', async (req, res) => {
 
         return res.status(200).json(response);
     } catch (error) {
-        res.status(400).send(`Error: ${error}`)
+        return res.status(400).send(`Error: ${error}`)
     }        
 });
 
@@ -103,7 +109,16 @@ app.get('/centros/:centro_id', async (req, res) => {
         const doc = db.collection(centrosPath).doc(req.params.centro_id);
         const centro = await doc.get();
         const response = centro.data();
-        return res.status(200).json(response);
+
+        // Verificar que existan datos
+        if (response == null){
+            // No se hayó el CA
+            return res.status(404).send(`Centro no encontrado`);    
+        }else{
+            // Existe el CA
+            // Se devuelven sus datos
+            return res.status(200).json(response);
+        }
     } catch (error) {
         res.status(400).send(`Error: ${error}`)
     }        
@@ -265,9 +280,17 @@ app.post('/new-farmaceutico/', async (req, res) => {
 app.get('/admins/:user_id', async (req, res) => {
     try {
         const doc = db.collection(adminsPath).doc(req.params.user_id);
-        const centro = await doc.get();
-        const response = centro.data();
-        return res.status(200).json(response);
+        const user = await doc.get();
+        const response = user.data();
+        // Verificar que existan datos
+        if (response == null){
+            // No se hayó el CA
+            return res.status(404).send(`Admin no encontrado`);    
+        }else{
+            // Existe el CA
+            // Se devuelven sus datos
+            return res.status(200).json(response);
+        }
     } catch (error) {
         res.status(400).send(`Error: ${error}`)
     }        
@@ -277,9 +300,17 @@ app.get('/admins/:user_id', async (req, res) => {
 app.get('/medicos/:user_id', async (req, res) => {
     try {
         const doc = db.collection(medicoPath).doc(req.params.user_id);
-        const centro = await doc.get();
-        const response = centro.data();
-        return res.status(200).json(response);
+        const user = await doc.get();
+        const response = user.data();
+        // Verificar que existan datos
+        if (response == null){
+            // No se hayó el CA
+            return res.status(404).send(`Medico no encontrado`);    
+        }else{
+            // Existe el CA
+            // Se devuelven sus datos
+            return res.status(200).json(response);
+        }
     } catch (error) {
         res.status(400).send(`Error: ${error}`)
     }        
@@ -289,9 +320,17 @@ app.get('/medicos/:user_id', async (req, res) => {
 app.get('/farmaceuticos/:user_id', async (req, res) => {
     try {
         const doc = db.collection(farmaceuticosPath).doc(req.params.user_id);
-        const centro = await doc.get();
-        const response = centro.data();
-        return res.status(200).json(response);
+        const user = await doc.get();
+        const response = user.data();
+        // Verificar que existan datos
+        if (response == null){
+            // No se hayó el CA
+            return res.status(404).send(`Farmaceutico no encontrado`);    
+        }else{
+            // Existe el CA
+            // Se devuelven sus datos
+            return res.status(200).json(response);
+        }
     } catch (error) {
         res.status(400).send(`Error: ${error}`)
     }        
@@ -302,38 +341,6 @@ app.get('/farmaceuticos/:user_id', async (req, res) => {
 // ------------------------------------------------- \\
 //                    MEDICAMENTOS                   \\
 // ------------------------------------------------- \\
-// OBTENER TODOS LOS MEDICAMENTOS
-app.get('/medicamentos/', async (req, res) => {
-    try {
-        const query = db.collection(medicamentosPath);
-        const querySnapshot = await query.get();
-        const docs = querySnapshot.docs;
-
-        const response = docs.map((doc) => ({
-            id: doc.id,
-            nombre: doc.data().nombre,
-            direccion: doc.data().direccion,
-            comuna: doc.data().comuna,
-            region: doc.data().region
-        }));
-        return res.status(200).json(response);
-    } catch (error) {
-        res.status(400).send(`Error: ${error}`)
-    }        
-});
-
-// OBTENER UN MEDICAMENTO
-app.get('/medicamentos/:med_id', async (req, res) => {
-    try {
-        const doc = db.collection(medicamentosPath).doc(req.params.med_id);
-        const centro = await doc.get();
-        const response = centro.data();
-        return res.status(200).json(response);
-    } catch (error) {
-        res.status(400).send(`Error: ${error}`)
-    }        
-});
-
 // CREAR NUEVO MEDICAMENTOS
 app.post('/medicamento/', async (req, res) => {
     try {
@@ -356,14 +363,59 @@ app.post('/medicamento/', async (req, res) => {
     }        
 });
 
-//...
+// OBTENER TODOS LOS MEDICAMENTOS
+app.get('/medicamentos/', async (req, res) => {
+    try {
+        const query = db.collection(medicamentosPath);
+        const querySnapshot = await query.get();
+        const docs = querySnapshot.docs;
+
+        // Verificar que existan datos
+        if(querySnapshot.size == 0){
+            // No hay centros
+            return res.status(404).send(`No exsten medicamentos`)
+        }
+
+        const response = docs.map((doc) => ({
+            id: doc.id,
+            nombre: doc.data().nombre,
+            direccion: doc.data().direccion,
+            comuna: doc.data().comuna,
+            region: doc.data().region
+        }));
+        return res.status(200).json(response);
+    } catch (error) {
+        res.status(400).send(`Error: ${error}`)
+    }        
+});
+
+// OBTENER UN MEDICAMENTO
+app.get('/medicamento/:med_id', async (req, res) => {
+    try {
+        const doc = db.collection(medicamentosPath).doc(req.params.med_id);
+        const medicamento = await doc.get();
+        const response = medicamento.data();
+
+        // Verificar que existan datos
+        if (response == null){
+            // No se hayó el Medicamento
+            return res.status(404).send(`Medicamento no encontrado`);    
+        }else{
+            // Existe el medicamento
+            // Se devuelven sus datos
+            return res.status(200).json(response);
+        }
+    } catch (error) {
+        res.status(400).send(`Error: ${error}`)
+    }        
+});
 
 // ACTUALIZAR UN MEDICAMENTO
 app.patch('/medicamento/:med_id', async (req, res) => {
     try {
         const updatedDoc = await admin.firebaseHelper.firestore
             .updateDocument(db, medicamentosPath, req.params.med_id, req.body);
-        res.status(204).send(`Fue actualizado el medicamento: ${updatedDoc}`);
+        res.status(200).send(`Fue actualizado el medicamento: ${updatedDoc}`);
     } catch (error) {
         res.status(400).send(`Error: ${error}`);
     }
@@ -374,7 +426,7 @@ app.delete('/medicamento/:med_id', async (req, res) => {
     try {
         const deletedMed = await admin.firebaseHelper.firestore
             .deleteDocument(db, medicamentosPath, req.params.med_id);
-        res.status(204).send(`Fue eliminado el medicamento: ${deletedMed}`);
+        res.status(200).send(`Fue eliminado el medicamento: ${deletedMed}`);
     } catch (error) {
         res.status(400).send(`Error: ${error}`);
     }
