@@ -7,9 +7,16 @@ const { body, validationResult } = require('express-validator');
 
 admin.initializeApp();
 
+// CONFIGURACIÓN app
 const app = express();
 const db = admin.firestore();
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 
+
+// ------------------------------------------------- \\
+//                RUTAS COLECCIONES                  \\
+// ------------------------------------------------- \\
 const centrosPath = 'centros';
 const adminsPath = 'admins';
 const medicoPath = 'medicos';
@@ -18,6 +25,11 @@ const medicamentosPath = 'medicamentos';
 const preescripcionPath = 'preescripcion';
 const farmaceuticosPath = 'farmaceuticos';
 
+
+// ------------------------------------------------- \\
+//                 VALIDACIÓN DATOS                  \\
+// ------------------------------------------------- \\
+// ADMIN
 const adminUserCreationValidators = [
     body('correo').isEmail().withMessage("Correo invalido"),
     body('nombre').notEmpty().withMessage("Falta nombre"),
@@ -25,8 +37,29 @@ const adminUserCreationValidators = [
     body('amaterno').notEmpty().withMessage("Falta apellido materno"),
     body('password').isLength({min: 5}).withMessage("Largo mínimo de 5 dígitos")
    ];
-
-   const pacienteCreationValidators = [
+// MEDICO
+const medicoUserCreationValidators = [
+    body('correo').isEmail().withMessage("Correo invalido"),
+    body('rut').notEmpty().withMessage("Rut inválido"),
+    body('nombre').notEmpty().withMessage("Falta nombre"),
+    body('apaterno').notEmpty().withMessage("Falta apellido paterno"),
+    body('amaterno').notEmpty().withMessage("Falta apellido materno"),
+    body('idCentroMedico').notEmpty().withMessage("Falta id del centro medico"),
+    body('especialidad').notEmpty().withMessage("Falta especialidad"),
+    body('password').isLength({min: 5}).withMessage("Largo mínimo de 5 dígitos")
+   ];
+// FARMACEUTICO
+const farmaceuticoUserCreationValidators = [
+    body('correo').isEmail().withMessage("Correo invalido"),
+    body('rut').notEmpty().withMessage("Rut inválido"),
+    body('nombre').notEmpty().withMessage("Falta nombre"),
+    body('apaterno').notEmpty().withMessage("Falta apellido paterno"),
+    body('amaterno').notEmpty().withMessage("Falta apellido materno"),
+    body('idCentroMedico').notEmpty().withMessage("Falta id del centro medico"),
+    body('password').isLength({min: 5}).withMessage("Largo mínimo de 5 dígitos")
+   ];
+// PACIENTE
+const pacienteCreationValidators = [
     body('correo').isEmail().optional().withMessage("Correo invalido"),
     body('telefono').isInt().optional().isLength({min: 11}).withMessage("Teléfono invalido"),
     body('nombre').notEmpty().withMessage("Falta nombre"),
@@ -41,8 +74,6 @@ const adminUserCreationValidators = [
     body('not_cor').isBoolean().withMessage("Dato boleano")
    ];
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
 
 
 // ------------------------------------------------- \\
