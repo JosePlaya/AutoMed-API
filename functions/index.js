@@ -95,7 +95,7 @@ app.post('/new-admin/', adminUserCreationValidators, async (req, res) => {
     // Validar datos de entrada
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(404).json({ errors: errors.array() });
     }
 
     // Variables del request
@@ -137,17 +137,23 @@ app.post('/new-admin/', adminUserCreationValidators, async (req, res) => {
 });
 
 // NEW MEDICO USER
-app.post('/new-medico/', async (req, res) => {
+app.post('/new-medico/', medicoUserCreationValidators, async (req, res) => {
+
+    // Validar datos de entrada
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(404).json({ errors: errors.array() });
+    }
     
     // Variables del request
-    const rut = req.body.rut;
     const correo = req.body.correo;
     const nombre = req.body.nombre;
     const apaterno = req.body.apaterno;
     const amaterno = req.body.amaterno;
-    const especialidad = req.body.especialidad;
-    const idCentroMedico = req.body.idCentroMedico;
     const displayName = nombre +' '+ apaterno +' '+ amaterno
+
+    // Crear datos usuario para BD
+    const user = req.body
 
     try {
         // Crear usuario en Auth
@@ -163,15 +169,7 @@ app.post('/new-medico/', async (req, res) => {
                 try {
                     db.collection(medicoPath)
                     .doc(userRecord.uid)
-                    .create({
-                        rut: rut,
-                        correo: correo,
-                        nombre: nombre,
-                        apaterno: apaterno,
-                        amaterno: amaterno,
-                        especialidad: especialidad,
-                        idCentroMedico: idCentroMedico
-                    });
+                    .create(user);
                     return res.status(201).send(`Nuevo usuario medico creado: ${displayName}`);
                 } catch (error) {
                     res.status(400).send(`Error: SE HA CREADO EL USUARIO, PERO NO SE ALAMCENARON LOS DATOS. ${error}`);
@@ -186,16 +184,23 @@ app.post('/new-medico/', async (req, res) => {
 });
 
 // NEW FARMACEUTICO USER
-app.post('/new-farmaceutico/', async (req, res) => {
+app.post('/new-farmaceutico/', farmaceuticoUserCreationValidators, async (req, res) => {
+
+    // Validar datos de entrada
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(404).json({ errors: errors.array() });
+    }
     
     // Variables del request
-    const rut = req.body.rut;
     const correo = req.body.correo;
     const nombre = req.body.nombre;
     const apaterno = req.body.apaterno;
     const amaterno = req.body.amaterno;
-    const idCentroMedico = req.body.idCentroMedico;
     const displayName = nombre +' '+ apaterno +' '+ amaterno
+
+    // Crear datos usuario para BD
+    const user = req.body
 
     try {
         // Crear usuario en Auth
@@ -211,14 +216,7 @@ app.post('/new-farmaceutico/', async (req, res) => {
                 try {
                     db.collection(farmaceuticosPath)
                     .doc(userRecord.uid)
-                    .create({
-                        rut: rut,
-                        correo: correo,
-                        nombre: nombre,
-                        apaterno: apaterno,
-                        amaterno: amaterno,
-                        idCentroMedico: idCentroMedico
-                    });
+                    .create(user);
                     return res.status(201).send(`Nuevo usuario farmaceutico creado: ${displayName}`);
                 } catch (error) {
                     res.status(400).send(`Error: SE HA CREADO EL USUARIO, PERO NO SE ALAMCENARON LOS DATOS. ${error}`);
@@ -545,9 +543,14 @@ app.get('/medicamentos/', async (req, res) => {
         const response = docs.map((doc) => ({
             id: doc.id,
             nombre: doc.data().nombre,
-            direccion: doc.data().direccion,
-            comuna: doc.data().comuna,
-            region: doc.data().region
+            stock: doc.data().stock,
+            codigo: doc.data().codigo,
+            gramaje: doc.data().gramaje,
+            cantidad: doc.data().cantidad,
+            contenido: doc.data().contenido,
+            fabricante: doc.data().fabricante,
+            descripcion: doc.data().descripcion,
+            idCentroMedico: doc.data().idCentroMedico 
         }));
         return res.status(200).json(response);
     } catch (error) {
@@ -555,8 +558,38 @@ app.get('/medicamentos/', async (req, res) => {
     }        
 });
 
-// OBTENER UN MEDICAMENTO
-app.get('/medicamento/:med_id', async (req, res) => {
+// OBTENER TODOS LOS MEDICAMENTOS DE UN CENTRO
+app.get('/medicamentos/:cen_id', async (req, res) => {
+    try {
+        const query = db.collection(medicamentosPath).where('idCentroMedico', '==', req.params.cen_id);
+        const querySnapshot = await query.get();
+        const docs = querySnapshot.docs;
+
+        // Verificar que existan datos
+        if(querySnapshot.size == 0){
+            // No hay centros
+            return res.status(404).send(`No exsten medicamentos`)
+        }
+
+        const response = docs.map((doc) => ({
+            id: doc.id,
+            nombre: doc.data().nombre,
+            stock: doc.data().stock,
+            codigo: doc.data().codigo,
+            gramaje: doc.data().gramaje,
+            cantidad: doc.data().cantidad,
+            contenido: doc.data().contenido,
+            fabricante: doc.data().fabricante,
+            descripcion: doc.data().descripcion
+        }));
+        return res.status(200).json(response);
+    } catch (error) {
+        res.status(400).send(`Error: ${error}`)
+    }        
+});
+
+// OBTENER UN MEDICAMENTO POR ID
+app.get('/medicamento-id/:med_id', async (req, res) => {
     try {
         const doc = db.collection(medicamentosPath).doc(req.params.med_id);
         const medicamento = await doc.get();
@@ -571,6 +604,37 @@ app.get('/medicamento/:med_id', async (req, res) => {
             // Se devuelven sus datos
             return res.status(200).json(response);
         }
+    } catch (error) {
+        res.status(400).send(`Error: ${error}`)
+    }        
+});
+
+// OBTENER UN MEDICAMENTO POR SU CÓDIGO
+app.get('/medicamento-cod/:med_cod', async (req, res) => {
+    try {
+        const query = await db.collection(medicamentosPath).where('codigo', '==', req.params.med_cod);
+        const querySnapshot = await query.get();
+        const paciente = querySnapshot.docs;
+
+        // Verificar que existan datos
+        if(querySnapshot.size == 0){
+            // No hay centros
+            return res.status(404).send(`No existe el medicamento`)
+        }
+
+        const response = paciente.map((doc) => ({
+            id: doc.id,
+            nombre: doc.data().nombre,
+            stock: doc.data().stock,
+            codigo: doc.data().codigo,
+            gramaje: doc.data().gramaje,
+            cantidad: doc.data().cantidad,
+            contenido: doc.data().contenido,
+            fabricante: doc.data().fabricante,
+            descripcion: doc.data().descripcion,
+            idCentroMedico: doc.data().idCentroMedico
+        }));
+        return res.status(200).json(response);        
     } catch (error) {
         res.status(400).send(`Error: ${error}`)
     }        
@@ -596,6 +660,97 @@ app.delete('/medicamento/:med_id', async (req, res) => {
     } catch (error) {
         res.status(400).send(`Error: ${error}`);
     }
+});
+
+// OBTENER STOCK DE UN MEDICAMENTO POR ID
+app.get('/stock/medicamento-id/:med_id', async (req, res) => {
+    try {
+        const doc = db.collection(medicamentosPath).doc(req.params.med_id);
+        const medicamento = await doc.get();
+        const response = medicamento.data();
+
+        // Verificar que existan datos
+        if (response == null){
+            // No se hayó el Medicamento
+            return res.status(404).send(`Medicamento no encontrado`);    
+        }else{
+            // Existe el medicamento
+            // Se devuelven sus datos
+            const resp = {
+                stock: response.stock
+            };
+            return res.status(200).json(resp);
+        }
+    } catch (error) {
+        res.status(400).send(`Error: ${error}`)
+    }              
+});
+
+// OBTENER STOCK DE UN MEDICAMENTO POR SU CÓDIGO
+app.get('/stock/medicamento-cod/:med_cod', async (req, res) => {
+    try {
+        const query = await db.collection(medicamentosPath).where('codigo', '==', req.params.med_cod);
+        const querySnapshot = await query.get();
+        const paciente = querySnapshot.docs;
+
+        // Verificar que existan datos
+        if(querySnapshot.size == 0){
+            // No hay madicamento
+            return res.status(404).send(`Medicamento no encontrado`)
+        }
+
+        const response = paciente.map((doc) => ({
+            stock: doc.data().stock
+        }));
+        return res.status(200).json(response);        
+    } catch (error) {
+        res.status(400).send(`Error: ${error}`)
+    }        
+});
+
+// ACTUALIZAR STOCK DE UN MEDICAMENTO POR ID
+app.patch('/stock/medicamento-id/:med_id', async (req, res) => {
+    // Variables del request
+    const changeStock = req.body.stock;
+    // Revisar si es un enteri: int (número)
+	if (!Number.isInteger(changeStock)){
+        return res.status(400).send(`El valor debe ser un entero (int)`);
+    }else{
+        // Es número
+        // Revisar que sea distinto a 0
+        if(changeStock == 0){
+            return res.status(400).send(`El valor debe ser distinto a 0`);
+        }
+    }
+    
+    try {
+        // Realizar consulta de stock a la BD
+        const doc = db.collection(medicamentosPath).doc(req.params.med_id);
+        const medicamento = await doc.get();
+        const response = medicamento.data();
+
+        // Verificar que existan datos
+        if (response == null){
+            // No se hayó el Medicamento
+            return res.status(404).send(`Medicamento no encontrado`);    
+        }else{
+            // Existe el medicamento
+            // Se calcula el nuevo stock
+            const oldStock = response.stock;
+            const newStock = oldStock + changeStock
+            if(newStock < 0){
+                // Stock insuficiente
+                return res.status(400).send(`¡No hay stock suficiente!`);
+            }else{
+                // Stock suficiente
+                // Se actualiza
+                await db.collection(medicamentosPath).doc(req.params.med_id).update({stock: newStock});
+                return res.status(200).send(`Actualizado el stock: ${newStock}`);
+            }
+        }
+    } catch (error) {
+        return res.status(400).send(`Error: ${error}`);
+    }      
 });
 
 // ------------------------------------------------- \\
