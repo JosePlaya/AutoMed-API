@@ -538,19 +538,32 @@ app.get('/medicamento-id/:med_id', async (req, res) => {
     try {
         const doc = db.collection(medicamentosPath).doc(req.params.med_id);
         const medicamento = await doc.get();
-        const response = medicamento.data();
+        const r = medicamento.data();
 
         // Verificar que existan datos
-        if (response == null){
+        if (r == null){
             // No se hayó el Medicamento
             return res.status(404).send(`Medicamento no encontrado`);    
         }else{
             // Existe el medicamento
             // Se devuelven sus datos
+            const response = {
+                id: doc.id,
+                stock: r.stock,
+                codigo: r.codigo,
+                nombre: r.nombre,
+                gramaje: r.gramaje,
+                cantidad: r.cantidad,
+                contenido: r.contenido,
+                fabricante: r.fabricante,
+                descripcion: r.descripcion,
+                idCentroMedico: r.idCentroMedico
+            };
+
             return res.status(200).json(response);
         }
     } catch (error) {
-        res.status(400).send(`Error: ${error}`)
+        res.status(500).send(`Error: ${error}`)
     }        
 });
 
@@ -586,22 +599,21 @@ app.get('/medicamento-cod/:med_cod', async (req, res) => {
 });
 
 // ACTUALIZAR UN MEDICAMENTO
-app.patch('/medicamento/:med_id', async (req, res) => {
+app.post('/medicamento/update/:med_id', async (req, res) => {
     try {
-        const updatedDoc = await admin.firebaseHelper.firestore
-            .updateDocument(db, medicamentosPath, req.params.med_id, req.body);
-        res.status(200).send(`Fue actualizado el medicamento: ${updatedDoc}`);
+        const medRef = db.collection(medicamentosPath).doc(req.params.med_id);
+        const response = await medRef.update(req.body);
+        return res.status(204).send(`Fue actualizado el medicamento: ${req.body}`);
     } catch (error) {
-        res.status(400).send(`Error: ${error}`);
+        return res.status(400).send(`Error: ${error}`);
     }
 });
 
 // ELIMINAR MEDICAMENTO 
 app.delete('/medicamento/:med_id', async (req, res) => {
     try {
-        const deletedMed = await admin.firebaseHelper.firestore
-            .deleteDocument(db, medicamentosPath, req.params.med_id);
-        res.status(200).send(`Fue eliminado el medicamento: ${deletedMed}`);
+        const medRef = db.collection(medicamentosPath).doc(req.params.med_id).delete();
+        res.status(200).send(`Fue eliminado el medicamento: ${req.params.med_id}`);
     } catch (error) {
         res.status(400).send(`Error: ${error}`);
     }
@@ -770,16 +782,6 @@ app.get('/preescipcion/:pre_id', async (req, res) => {
 
 
 
-// ACTUALIZAR UN MEDICAMENTO
-app.patch('/medicamento/:med_id', async (req, res) => {
-    try {
-        const updatedDoc = await admin.firebaseHelper.firestore
-            .updateDocument(db, medicamentosPath, req.params.med_id, req.body);
-        res.status(204).send(`Fue actualizado el medicamento: ${updatedDoc}`);
-    } catch (error) {
-        res.status(400).send(`Error: ${error}`);
-    }
-});
 
 // ELIMINAR MEDICAMENTO 
 app.delete('/medicamento/:med_id', async (req, res) => {
