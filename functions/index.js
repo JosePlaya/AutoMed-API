@@ -4,7 +4,8 @@ const admin = require('firebase-admin');
 //const serviceAccount = require("/Users/Shared/AutoMed-Functions/functions/permission.json");
 const bodyParser = require('body-parser');
 const { body, validationResult, param } = require('express-validator');
-const { validate, clean, format, getCheckDigit } = require('rut.js')
+const { validate, clean, format, getCheckDigit } = require('rut.js');
+const { mailer } = require('./email.js');
 
 
 admin.initializeApp();
@@ -28,7 +29,7 @@ const medicamentosPath = 'medicamentos';
 const preescripcionPath = 'prescripciones';
 const farmaceuticosPath = 'farmaceuticos';
 //
-const tiposUsuarios = ['admin', 'medico', 'farmaceutico']
+const tiposUsuarios = ['administrador', 'medico', 'farmaceutico']
 
 
 // ------------------------------------------------- \\
@@ -245,7 +246,7 @@ app.get('/usuario/:user_id', async (req, res) => {
 // ------------------------------------------------- \\
 //                     CENTROS                       \\
 // ------------------------------------------------- \\
-// CREAR NUEVO CENTRO
+// CREAR NUEVO CENTRO MEDICO
 app.post('/centro/', async (req, res) => {
     try {
         await db.collection(centrosPath)
@@ -263,7 +264,7 @@ app.post('/centro/', async (req, res) => {
     }        
 });
 
-// OBTENER TODOS LOS CENTRO
+// OBTENER TODOS LOS CENTRO MEDICO
 app.get('/centros/', async (req, res) => {
     try {
         const query = db.collection(centrosPath);
@@ -278,6 +279,7 @@ app.get('/centros/', async (req, res) => {
 
         const response = docs.map((doc) => ({
             id: doc.id,
+            tipo: doc.data().tipo,
             nombre: doc.data().nombre,
             direccion: doc.data().direccion,
             comuna: doc.data().comuna,
@@ -291,7 +293,7 @@ app.get('/centros/', async (req, res) => {
     }        
 });
 
-// OBTENER UN CENTRO
+// OBTENER UN CENTRO MEDICO
 app.get('/centros/:centro_id', async (req, res) => {
     try {
         const doc = db.collection(centrosPath).doc(req.params.centro_id);
@@ -312,6 +314,15 @@ app.get('/centros/:centro_id', async (req, res) => {
     }        
 });
 
+// ELIMINAR MEDICAMENTO UN CENTRO MEDICO
+app.delete('/centro/:centro_id', async (req, res) => {
+    try {
+        const medRef = db.collection(centrosPath).doc(req.params.centro_id).delete();
+        res.status(200).send(`Fue eliminado el centro medico id: ${req.params.centro_id}`);
+    } catch (error) {
+        res.status(400).send(`Error: ${error}`);
+    }
+});
 
 
 // ------------------------------------------------- \\
@@ -794,6 +805,28 @@ app.delete('/medicamento/:med_id', async (req, res) => {
     }
 });
 
+
+
+// ------------------------------------------------- \\
+//                   NOTIFICACIONES                  \\
+// ------------------------------------------------- \\
+// CREAR NUEVA PRESCRIPCIÓN
+app.post('/notificacion/correo/', async (req, res) => {
+
+    // Datos
+    const remitentes = req.body.remitentes;
+    const stockDisponible = req.body.stockDisponible;
+    const nombreMedicamento = req.body.nombreMedicamento;
+    const nombreCentroMedico = req.body.nombreCentroMedico;
+
+    // Enviar correo
+    const respons = mailer(remitentes, nombreMedicamento, nombreCentroMedico, stockDisponible);
+    if (respons == 200){
+        res.status(200).send(`Mensaje enviado`);
+    }else{
+        res.status(400).send(`Error. Mensaje no enviado.`);
+    }
+});
 
 //---------------------------------------------------
 exports.webApi = functions.https.onRequest(app);

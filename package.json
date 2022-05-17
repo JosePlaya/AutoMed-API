@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "nodemailer": "^6.7.5",
     "rut.js": "^2.1.0",
     "wbm": "^1.1.16"
   }
