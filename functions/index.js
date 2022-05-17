@@ -5,7 +5,7 @@ const admin = require('firebase-admin');
 const bodyParser = require('body-parser');
 const { body, validationResult, param } = require('express-validator');
 const { validate, clean, format, getCheckDigit } = require('rut.js');
-const { mailer } = require('./email.js');
+// const { mailer } = require('./email.js');
 
 
 admin.initializeApp();
@@ -140,6 +140,7 @@ app.post('/usuario/', userCreationValidators, async (req, res) => {
     // Validar datos de entrada
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+        console.log('Error en el request: ', errors.array());
         return res.status(404).json({ errors: errors.array() });
     }
 
@@ -170,10 +171,12 @@ app.post('/usuario/', userCreationValidators, async (req, res) => {
                     .create(user);
                     return res.status(201).send(`Nuevo usuario admin creado: ${displayName}`);
                 } catch (error) {
+                    console.log('Error 1');
                     res.status(400).send(`Error: SE HA CREADO EL USUARIO, PERO NO SE ALAMCENARON LOS DATOS. ${error}`);
                 }
             })
             .catch(function(error) {
+                console.log('Error 2');
                 res.status(400).send(`Error: ${error}`);
             });
     } catch (error) {
@@ -240,6 +243,15 @@ app.get('/usuario/:user_id', async (req, res) => {
     }        
 });
 
+// ELIMINAR USUARIO 
+app.delete('/usuario/:user_id', async (req, res) => {
+    try {
+        const userRef = db.collection(usuariosPath).doc(req.params.user_id).delete();
+        res.status(200).send(`Fue eliminado el usuario: ${req.params.user_id}`);
+    } catch (error) {
+        res.status(400).send(`Error: ${error}`);
+    }
+});
 
 
 
@@ -810,23 +822,23 @@ app.delete('/medicamento/:med_id', async (req, res) => {
 // ------------------------------------------------- \\
 //                   NOTIFICACIONES                  \\
 // ------------------------------------------------- \\
-// CREAR NUEVA PRESCRIPCIÓN
-app.post('/notificacion/correo/', async (req, res) => {
+// NOTIFICAR POR CORREO ELECTRÓNICO
+// app.post('/notificacion/correo/', async (req, res) => {
 
-    // Datos
-    const remitentes = req.body.remitentes;
-    const stockDisponible = req.body.stockDisponible;
-    const nombreMedicamento = req.body.nombreMedicamento;
-    const nombreCentroMedico = req.body.nombreCentroMedico;
+//     // Datos
+//     const remitentes = req.body.remitentes;
+//     const stockDisponible = req.body.stockDisponible;
+//     const nombreMedicamento = req.body.nombreMedicamento;
+//     const nombreCentroMedico = req.body.nombreCentroMedico;
 
-    // Enviar correo
-    const respons = mailer(remitentes, nombreMedicamento, nombreCentroMedico, stockDisponible);
-    if (respons == 200){
-        res.status(200).send(`Mensaje enviado`);
-    }else{
-        res.status(400).send(`Error. Mensaje no enviado.`);
-    }
-});
+//     // Enviar correo
+//     const respons = mailer(remitentes, nombreMedicamento, nombreCentroMedico, stockDisponible);
+//     if (respons == 200){
+//         res.status(200).send(`Mensaje enviado`);
+//     }else{
+//         res.status(400).send(`Error. Mensaje no enviado.`);
+//     }
+// });
 
 //---------------------------------------------------
 exports.webApi = functions.https.onRequest(app);
