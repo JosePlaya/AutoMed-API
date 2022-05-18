@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const { body, validationResult, param } = require('express-validator');
 const { validate, clean, format, getCheckDigit } = require('rut.js');
 // const { mailer } = require('./email.js');
+var messagebird = require('messagebird')('HbN2vflvdwndrCNqFkcsAB5Hs');
 
 
 admin.initializeApp();
@@ -839,6 +840,34 @@ app.delete('/medicamento/:med_id', async (req, res) => {
 //         res.status(400).send(`Error. Mensaje no enviado.`);
 //     }
 // });
+
+app.post('/notificacion/wsp/', async (req, res) => {
+
+    // Datos
+    const remitentes = req.body.remitentes;
+    const stockDisponible = req.body.stockDisponible;
+    const nombreMedicamento = req.body.nombreMedicamento;
+    const nombreCentroMedico = req.body.nombreCentroMedico;
+
+    // Configurar wsp
+    var params = {
+        'to': '+56976423354',
+        'from': 'e22d1dc8-d9d1-4070-8da8-7d703df148fd',
+        'type': 'text',
+        'content': {
+          'text': 'WhatsApp de prueba!',
+          'disableUrlPreview': false
+        }
+      };
+      
+      // Enviar wsp
+      messagebird.conversations.send(params, function (err, response) {
+        if (err) {
+          return console.log(err);
+        }
+        console.log(response);
+      });
+});
 
 //---------------------------------------------------
 exports.webApi = functions.https.onRequest(app);
