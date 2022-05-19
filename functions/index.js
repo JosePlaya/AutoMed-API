@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 const { body, validationResult, param } = require('express-validator');
 const { validate, clean, format, getCheckDigit } = require('rut.js');
 // const { mailer } = require('./email.js');
-var messagebird = require('messagebird')('HbN2vflvdwndrCNqFkcsAB5Hs');
+//var messagebird = require('messagebird')('HbN2vflvdwndrCNqFkcsAB5Hs');
 
 
 admin.initializeApp();
@@ -737,54 +737,82 @@ app.patch('/stock/medicamento-id/:med_id', async (req, res) => {
 // ------------------------------------------------- \\
 //                    PREESCRIPCIÓN                  \\
 // ------------------------------------------------- \\
-// CREAR NUEVA PRESCRIPCIÓN
-app.post('/preescipcion/', async (req, res) => {
-
-    // Datos
-    const idMedico = req.body.idMedico;
-    const rutPaciente = req.body.rutPaciente;
-    const idCentroMedico = req.body.idCentroMedico;
-    var meicamentos;
-    var articulosMedicos;
-
-    for( m in req.body.medicamentos){
-        medic
-    }
-
-
+// CREAR NUEVA PRESCRIPCIÓN (DATOS)
+app.post('/prescipcion-d/', async (req, res) => {
+    // Almacenar en BD
     try {
-        await db.collection(medicamentosPath)
-        .doc()
-        .create({
-            stock: req.body.stock,
-            nombre: req.body.nombre,
-            codigo: req.body.codigo,
-            gramaje: req.body.gramaje,
-            cantidad: req.body.cantidad,
-            contenido: req.body.contenido,
-            fabricante: req.body.fabricante,
+        const newPres =  db.collection(preescripcionPath).doc();
+        await newPres.create({
+            status: 'pendiente',
+            fecha: Date(),
+            rutMedico: req.body.rutMedico,
+            rutPaciente: req.body.rutPaciente,
             descripcion: req.body.descripcion,
-            idCentroMedico: req.body.idCentroMedico
+            idCentroMedico: req.body.idCentroMedico,
+            duracionTratamiento: req.body.duracionTratamiento
         });
-        return res.status(201).send(`Nuevo medicamento creado: ${req.body.nombre}`);
+        return res.status(201).json({'key' : `${newPres.id}`, 'mensaje' : `Se ha creado la nueva prescripción SIN MEDICAMENTOS `});
     } catch (error) {
         res.status(400).send(`Error: ${error}`);
     }        
 });
 
-// OBTENER TODOS LOS MEDICAMENTOS
-app.get('/preescipciones/', async (req, res) => {
+// CREAR NUEVA PRESCRIPCIÓN (MEDICAMENTOS)
+app.post('/prescipcion-m/:id_pres', async (req, res) => {
+
+    // Datos
+    const medicamentos = req.body.medicamentos;
+
     try {
-        const query = db.collection(preescripcionPath);
+        const medRef = db.collection(preescripcionPath).doc(req.params.id_pres);
+        const response = await medRef.update(req.body);
+        return res.status(204).send(`Fue actualizado el medicamento: ${req.body}`);
+    } catch (error) {
+        return res.status(400).send(`Error: ${error}`);
+    }
+});
+
+// OBTENER TODASS LAS PRESCRIPCIONES DE UN MEDICO
+app.get('/prescipciones/medico/:med_rut', async (req, res) => {
+    try {
+        const query = db.collection(preescripcionPath).where('rutMedico', '==', req.params.med_rut);
         const querySnapshot = await query.get();
         const docs = querySnapshot.docs;
 
         const response = docs.map((doc) => ({
             id: doc.id,
-            nombre: doc.data().nombre,
-            direccion: doc.data().direccion,
-            comuna: doc.data().comuna,
-            region: doc.data().region
+            fecha: doc.data().fecha,
+            status: doc.data().status,
+            rutMedico: doc.data().rutMedico,
+            rutPaciente: doc.data().rutPaciente,
+            descripcion: doc.data().descripcion,
+            idCentroMedico: doc.data().idCentroMedico,
+            duracionTratamiento: doc.data().duracionTratamiento,
+            medicamento: doc.data().medicamento
+        }));
+        return res.status(200).json(response);
+    } catch (error) {
+        res.status(400).send(`Error: ${error}`)
+    }        
+});
+
+// OBTENER TODASS LAS PRESCRIPCIONES DE UN PACIENTE
+app.get('/prescipciones/paciente/:pac_rut', async (req, res) => {
+    try {
+        const query = db.collection(preescripcionPath).where('rutPaciente', '==', req.params.pac_rut);
+        const querySnapshot = await query.get();
+        const docs = querySnapshot.docs;
+
+        const response = docs.map((doc) => ({
+            id: doc.id,
+            fecha: doc.data().fecha,
+            status: doc.data().status,
+            rutMedico: doc.data().rutMedico,
+            rutPaciente: doc.data().rutPaciente,
+            descripcion: doc.data().descripcion,
+            idCentroMedico: doc.data().idCentroMedico,
+            duracionTratamiento: doc.data().duracionTratamiento,
+            medicamento: doc.data().medicamento
         }));
         return res.status(200).json(response);
     } catch (error) {
@@ -793,7 +821,7 @@ app.get('/preescipciones/', async (req, res) => {
 });
 
 // OBTENER UNA PREESCRIPCION
-app.get('/preescipcion/:pre_id', async (req, res) => {
+app.get('/prescipcion/:pre_id', async (req, res) => {
     try {
         const doc = db.collection(preescripcionPath).doc(req.params.pre_id);
         const centro = await doc.get();
@@ -804,15 +832,11 @@ app.get('/preescipcion/:pre_id', async (req, res) => {
     }        
 });
 
-
-
-
 // ELIMINAR MEDICAMENTO 
-app.delete('/medicamento/:med_id', async (req, res) => {
+app.delete('/prescipcion/:pre_id', async (req, res) => {
     try {
-        const deletedMed = await admin.firebaseHelper.firestore
-            .deleteDocument(db, medicamentosPath, req.params.med_id);
-        res.status(204).send(`Fue eliminado el medicamento: ${deletedMed}`);
+        const preRef = db.collection(preescripcionPath).doc(req.params.pre_id).delete();
+        res.status(200).send(`La prescripción fue eliminada: ${req.params.pre_id}`);
     } catch (error) {
         res.status(400).send(`Error: ${error}`);
     }
@@ -823,6 +847,11 @@ app.delete('/medicamento/:med_id', async (req, res) => {
 // ------------------------------------------------- \\
 //                   NOTIFICACIONES                  \\
 // ------------------------------------------------- \\
+// NOTIFICACIÓN POR NUEVO STOCK
+app.post('/notificacion/new-stock/', async (req, res) => {
+    return res.status(100).send('Metodo no operativo.')
+});
+
 // NOTIFICAR POR CORREO ELECTRÓNICO
 // app.post('/notificacion/correo/', async (req, res) => {
 
