@@ -3,7 +3,11 @@ const express = require('express');
 const admin = require('firebase-admin');
 //const serviceAccount = require("/Users/Shared/AutoMed-Functions/functions/permission.json");
 const bodyParser = require('body-parser');
-const { body, validationResult } = require('express-validator');
+const { body, validationResult, param } = require('express-validator');
+const { validate, clean, format, getCheckDigit } = require('rut.js');
+// const { mailer } = require('./email.js');
+//var messagebird = require('messagebird')('*');
+
 
 admin.initializeApp();
 
@@ -20,17 +24,39 @@ app.use(bodyParser.urlencoded({ extended: false }));
 const centrosPath = 'centros';
 const adminsPath = 'admins';
 const medicoPath = 'medicos';
+const usuariosPath = 'usuarios';
 const pacientesPath = 'pacientes';
 const medicamentosPath = 'medicamentos';
-const preescripcionPath = 'preescripcion';
+const preescripcionPath = 'prescripciones';
 const farmaceuticosPath = 'farmaceuticos';
+//
+const tiposUsuarios = ['administrador', 'medico', 'farmaceutico']
 
 
 // ------------------------------------------------- \\
 //                 VALIDACIÓN DATOS                  \\
 // ------------------------------------------------- \\
+// USUARIO
+const userCreationValidators = [
+    body('tipoUsuario').notEmpty().isIn(tiposUsuarios).withMessage("Tipo usuario incorrecto: admin, medico, farmaceutico"),
+    body('correo').notEmpty().isEmail().withMessage("Correo invalido"),
+    body('rut').notEmpty().custom(value => {
+        if(validate(value)){
+            return format(value)
+        }else{
+            return Promise.reject('Rut inválido')
+        }
+    }).withMessage("Rut inválido"),
+    body('nombre').notEmpty().withMessage("Falta nombre"),
+    body('apaterno').notEmpty().withMessage("Falta apellido paterno"),
+    body('amaterno').notEmpty().withMessage("Falta apellido materno"),
+    body('idCentroMedico').notEmpty().withMessage("Falta ID del centro médico"),
+    body('especialidad').optional(),
+    body('password').notEmpty().isLength({min: 5}).withMessage("Largo mínimo de 5 dígitos")
+   ];
 // ADMIN
 const adminUserCreationValidators = [
+    body('tipoUsuario').notEmpty().isIn(tiposUsuarios).withMessage("Tipo usuario incorrecto: admin, medico, farmaceutico"),
     body('correo').isEmail().withMessage("Correo invalido"),
     body('nombre').notEmpty().withMessage("Falta nombre"),
     body('apaterno').notEmpty().withMessage("Falta apellido paterno"),
@@ -39,6 +65,7 @@ const adminUserCreationValidators = [
    ];
 // MEDICO
 const medicoUserCreationValidators = [
+    body('tipoUsuario').notEmpty().isIn(tiposUsuarios).withMessage("Tipo usuario incorrecto: admin, medico, farmaceutico"),
     body('correo').isEmail().withMessage("Correo invalido"),
     body('rut').notEmpty().withMessage("Rut inválido"),
     body('nombre').notEmpty().withMessage("Falta nombre"),
@@ -50,6 +77,7 @@ const medicoUserCreationValidators = [
    ];
 // FARMACEUTICO
 const farmaceuticoUserCreationValidators = [
+    body('tipoUsuario').notEmpty().isIn(tiposUsuarios).withMessage("Tipo usuario incorrecto: admin, medico, farmaceutico"),
     body('correo').isEmail().withMessage("Correo invalido"),
     body('rut').notEmpty().withMessage("Rut inválido"),
     body('nombre').notEmpty().withMessage("Falta nombre"),
@@ -73,6 +101,24 @@ const pacienteCreationValidators = [
     body('not_wsp').isBoolean().withMessage("Dato boleano"),
     body('not_cor').isBoolean().withMessage("Dato boleano")
    ];
+// USUARIO
+const prescripcionesCreationValidators = [
+    body('tipoUsuario').notEmpty().isIn(tiposUsuarios).withMessage("Tipo usuario incorrecto: admin, medico, farmaceutico"),
+    body('correo').notEmpty().isEmail().withMessage("Correo invalido"),
+    body('rut').notEmpty().custom(value => {
+        if(validate(value)){
+            return format(value)
+        }else{
+            return Promise.reject('Rut inválido')
+        }
+    }).withMessage("Rut inválido"),
+    body('nombre').notEmpty().withMessage("Falta nombre"),
+    body('apaterno').notEmpty().withMessage("Falta apellido paterno"),
+    body('amaterno').notEmpty().withMessage("Falta apellido materno"),
+    body('idCentroMedico').notEmpty().withMessage("Falta ID del centro médico"),
+    body('especialidad').optional(),
+    body('password').notEmpty().isLength({min: 5}).withMessage("Largo mínimo de 5 dígitos")
+];
 
 
 
@@ -87,14 +133,15 @@ app.get('/status/', (rep, res) => {
 
 
 // ------------------------------------------------- \\
-//                   CREAR USUARIO                   \\
+//                      USUARIOS                     \\
 // ------------------------------------------------- \\
-// NEW ADMIN USER
-app.post('/new-admin/', adminUserCreationValidators, async (req, res) => {
+// NEW USUARIO
+app.post('/usuario/', userCreationValidators, async (req, res) => {
 
     // Validar datos de entrada
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+        console.log('Error en el request: ', errors.array());
         return res.status(404).json({ errors: errors.array() });
     }
 
@@ -120,15 +167,17 @@ app.post('/new-admin/', adminUserCreationValidators, async (req, res) => {
             // Almacenar datos del usuario en Firestore
             .then(function(userRecord) {
                 try {
-                    db.collection(adminsPath)
+                    db.collection(usuariosPath)
                     .doc(userRecord.uid)
                     .create(user);
                     return res.status(201).send(`Nuevo usuario admin creado: ${displayName}`);
                 } catch (error) {
+                    console.log('Error 1');
                     res.status(400).send(`Error: SE HA CREADO EL USUARIO, PERO NO SE ALAMCENARON LOS DATOS. ${error}`);
                 }
             })
             .catch(function(error) {
+                console.log('Error 2');
                 res.status(400).send(`Error: ${error}`);
             });
     } catch (error) {
@@ -136,106 +185,81 @@ app.post('/new-admin/', adminUserCreationValidators, async (req, res) => {
     }
 });
 
-// NEW MEDICO USER
-app.post('/new-medico/', medicoUserCreationValidators, async (req, res) => {
+// OBTENER USUARIOS POR TIPO
+app.get('/usuarios/:tipo', async (req, res) => {
 
-    // Validar datos de entrada
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(404).json({ errors: errors.array() });
+    const tipou = req.params.tipo;
+
+    if(!tiposUsuarios.includes(tipou)){
+        // Se especifica un tipo de usuario erroneo
+        return res.status(400).send(`Error en el tipo de usuario a buscar.\nDeben ser del tipo: ` + tiposUsuarios);
     }
-    
-    // Variables del request
-    const correo = req.body.correo;
-    const nombre = req.body.nombre;
-    const apaterno = req.body.apaterno;
-    const amaterno = req.body.amaterno;
-    const displayName = nombre +' '+ apaterno +' '+ amaterno
-
-    // Crear datos usuario para BD
-    const user = req.body
 
     try {
-        // Crear usuario en Auth
-        await admin.auth().createUser({
-            email: correo,
-            emailVerified: true,
-            password: req.body.password,
-            displayName: displayName,
-            disabled: false
-          })
-            // Almacenar datos del usuario en Firestore
-            .then(function(userRecord) {
-                try {
-                    db.collection(medicoPath)
-                    .doc(userRecord.uid)
-                    .create(user);
-                    return res.status(201).send(`Nuevo usuario medico creado: ${displayName}`);
-                } catch (error) {
-                    res.status(400).send(`Error: SE HA CREADO EL USUARIO, PERO NO SE ALAMCENARON LOS DATOS. ${error}`);
-                }
-            })
-            .catch(function(error) {
-                res.status(400).send(`Error: ${error}`);
-            });
+        const query = db.collection(usuariosPath).where('tipoUsuario', '==', tipou);
+        const querySnapshot = await query.get();
+        const docs = querySnapshot.docs;
+
+        // Verificar que existan datos
+        if(querySnapshot.size == 0){
+            // No hay centros
+            return res.status(404).send(`No exsten usuarios del tipo: ` + tipou);
+        }
+
+        const response = docs.map((doc) => ({
+            id: doc.id,
+            tipoUsuario: doc.data().tipoUsuario,
+            rut: doc.data().rut,
+            correo: doc.data().correo,
+            nombre: doc.data().nombre,
+            apaterno: doc.data().apaterno,
+            amaterno: doc.data().amaterno,
+            especialidad: doc.data().especialidad,
+            idCentroMedico: doc.data().idCentroMedico
+        }));
+        return res.status(200).json(response);
+
     } catch (error) {
-        res.status(500).send(`${error}`)
-    }
+        res.status(400).send(`Error: ${error}`)
+    }        
 });
 
-// NEW FARMACEUTICO USER
-app.post('/new-farmaceutico/', farmaceuticoUserCreationValidators, async (req, res) => {
-
-    // Validar datos de entrada
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(404).json({ errors: errors.array() });
-    }
-    
-    // Variables del request
-    const correo = req.body.correo;
-    const nombre = req.body.nombre;
-    const apaterno = req.body.apaterno;
-    const amaterno = req.body.amaterno;
-    const displayName = nombre +' '+ apaterno +' '+ amaterno
-
-    // Crear datos usuario para BD
-    const user = req.body
-
+// OBTENER INFORMACIÓN DE UN USUARIO
+app.get('/usuario/:user_id', async (req, res) => {
     try {
-        // Crear usuario en Auth
-        await admin.auth().createUser({
-            email: correo,
-            emailVerified: true,
-            password: req.body.password,
-            displayName: displayName,
-            disabled: false
-          })
-            // Almacenar datos del usuario en Firestore
-            .then(function(userRecord) {
-                try {
-                    db.collection(farmaceuticosPath)
-                    .doc(userRecord.uid)
-                    .create(user);
-                    return res.status(201).send(`Nuevo usuario farmaceutico creado: ${displayName}`);
-                } catch (error) {
-                    res.status(400).send(`Error: SE HA CREADO EL USUARIO, PERO NO SE ALAMCENARON LOS DATOS. ${error}`);
-                }
-            })
-            .catch(function(error) {
-                res.status(400).send(`Error: ${error}`);
-            });
+        const doc = db.collection(usuariosPath).doc(req.params.user_id);
+        const user = await doc.get();
+        const response = user.data();
+        // Verificar que existan datos
+        if (response == null){
+            // No se hayó el usuario
+            return res.status(404).send(`Usuario no encontrado`);    
+        }else{
+            // Existe el usuario
+            // Se devuelven sus datos
+            return res.status(200).json(response);
+        }
     } catch (error) {
-        res.status(500).send(`${error}`)
+        res.status(400).send(`Error: ${error}`)
+    }        
+});
+
+// ELIMINAR USUARIO 
+app.delete('/usuario/:user_id', async (req, res) => {
+    try {
+        const userRef = db.collection(usuariosPath).doc(req.params.user_id).delete();
+        res.status(200).send(`Fue eliminado el usuario: ${req.params.user_id}`);
+    } catch (error) {
+        res.status(400).send(`Error: ${error}`);
     }
 });
 
 
 
 // ------------------------------------------------- \\
-//                     CENTORS                       \\
+//                     CENTROS                       \\
 // ------------------------------------------------- \\
-// CREAR NUEVO CENTRO
+// CREAR NUEVO CENTRO MEDICO
 app.post('/centro/', async (req, res) => {
     try {
         await db.collection(centrosPath)
@@ -253,7 +277,7 @@ app.post('/centro/', async (req, res) => {
     }        
 });
 
-// OBTENER TODOS LOS CENTRO
+// OBTENER TODOS LOS CENTRO MEDICO
 app.get('/centros/', async (req, res) => {
     try {
         const query = db.collection(centrosPath);
@@ -268,6 +292,7 @@ app.get('/centros/', async (req, res) => {
 
         const response = docs.map((doc) => ({
             id: doc.id,
+            tipo: doc.data().tipo,
             nombre: doc.data().nombre,
             direccion: doc.data().direccion,
             comuna: doc.data().comuna,
@@ -281,7 +306,7 @@ app.get('/centros/', async (req, res) => {
     }        
 });
 
-// OBTENER UN CENTRO
+// OBTENER UN CENTRO MEDICO
 app.get('/centros/:centro_id', async (req, res) => {
     try {
         const doc = db.collection(centrosPath).doc(req.params.centro_id);
@@ -302,6 +327,15 @@ app.get('/centros/:centro_id', async (req, res) => {
     }        
 });
 
+// ELIMINAR MEDICAMENTO UN CENTRO MEDICO
+app.delete('/centro/:centro_id', async (req, res) => {
+    try {
+        const medRef = db.collection(centrosPath).doc(req.params.centro_id).delete();
+        res.status(200).send(`Fue eliminado el centro medico id: ${req.params.centro_id}`);
+    } catch (error) {
+        res.status(400).send(`Error: ${error}`);
+    }
+});
 
 
 // ------------------------------------------------- \\
@@ -438,71 +472,6 @@ app.delete('/paciente/:pac_id', async (req, res) => {
 
 
 // ------------------------------------------------- \\
-//                INFORMACIÓN USUARIOS               \\
-// ------------------------------------------------- \\
-// OBTENER INFORMACIÓN USUARIO ADMIN
-app.get('/admins/:user_id', async (req, res) => {
-    try {
-        const doc = db.collection(adminsPath).doc(req.params.user_id);
-        const user = await doc.get();
-        const response = user.data();
-        // Verificar que existan datos
-        if (response == null){
-            // No se hayó el CA
-            return res.status(404).send(`Admin no encontrado`);    
-        }else{
-            // Existe el CA
-            // Se devuelven sus datos
-            return res.status(200).json(response);
-        }
-    } catch (error) {
-        res.status(400).send(`Error: ${error}`)
-    }        
-});
-
-// OBTENER INFORMACIÓN USUARIO FARMACEUTICO
-app.get('/medicos/:user_id', async (req, res) => {
-    try {
-        const doc = db.collection(medicoPath).doc(req.params.user_id);
-        const user = await doc.get();
-        const response = user.data();
-        // Verificar que existan datos
-        if (response == null){
-            // No se hayó el CA
-            return res.status(404).send(`Medico no encontrado`);    
-        }else{
-            // Existe el CA
-            // Se devuelven sus datos
-            return res.status(200).json(response);
-        }
-    } catch (error) {
-        res.status(400).send(`Error: ${error}`)
-    }        
-});
-
-// OBTENER INFORMACIÓN USUARIO FARMACEUTICO
-app.get('/farmaceuticos/:user_id', async (req, res) => {
-    try {
-        const doc = db.collection(farmaceuticosPath).doc(req.params.user_id);
-        const user = await doc.get();
-        const response = user.data();
-        // Verificar que existan datos
-        if (response == null){
-            // No se hayó el CA
-            return res.status(404).send(`Farmaceutico no encontrado`);    
-        }else{
-            // Existe el CA
-            // Se devuelven sus datos
-            return res.status(200).json(response);
-        }
-    } catch (error) {
-        res.status(400).send(`Error: ${error}`)
-    }        
-});
-
-
-
-// ------------------------------------------------- \\
 //                    MEDICAMENTOS                   \\
 // ------------------------------------------------- \\
 // CREAR NUEVO MEDICAMENTOS
@@ -593,19 +562,32 @@ app.get('/medicamento-id/:med_id', async (req, res) => {
     try {
         const doc = db.collection(medicamentosPath).doc(req.params.med_id);
         const medicamento = await doc.get();
-        const response = medicamento.data();
+        const r = medicamento.data();
 
         // Verificar que existan datos
-        if (response == null){
+        if (r == null){
             // No se hayó el Medicamento
             return res.status(404).send(`Medicamento no encontrado`);    
         }else{
             // Existe el medicamento
             // Se devuelven sus datos
+            const response = {
+                id: doc.id,
+                stock: r.stock,
+                codigo: r.codigo,
+                nombre: r.nombre,
+                gramaje: r.gramaje,
+                cantidad: r.cantidad,
+                contenido: r.contenido,
+                fabricante: r.fabricante,
+                descripcion: r.descripcion,
+                idCentroMedico: r.idCentroMedico
+            };
+
             return res.status(200).json(response);
         }
     } catch (error) {
-        res.status(400).send(`Error: ${error}`)
+        res.status(500).send(`Error: ${error}`)
     }        
 });
 
@@ -641,22 +623,21 @@ app.get('/medicamento-cod/:med_cod', async (req, res) => {
 });
 
 // ACTUALIZAR UN MEDICAMENTO
-app.patch('/medicamento/:med_id', async (req, res) => {
+app.post('/medicamento/update/:med_id', async (req, res) => {
     try {
-        const updatedDoc = await admin.firebaseHelper.firestore
-            .updateDocument(db, medicamentosPath, req.params.med_id, req.body);
-        res.status(200).send(`Fue actualizado el medicamento: ${updatedDoc}`);
+        const medRef = db.collection(medicamentosPath).doc(req.params.med_id);
+        const response = await medRef.update(req.body);
+        return res.status(204).send(`Fue actualizado el medicamento: ${req.body}`);
     } catch (error) {
-        res.status(400).send(`Error: ${error}`);
+        return res.status(400).send(`Error: ${error}`);
     }
 });
 
 // ELIMINAR MEDICAMENTO 
 app.delete('/medicamento/:med_id', async (req, res) => {
     try {
-        const deletedMed = await admin.firebaseHelper.firestore
-            .deleteDocument(db, medicamentosPath, req.params.med_id);
-        res.status(200).send(`Fue eliminado el medicamento: ${deletedMed}`);
+        const medRef = db.collection(medicamentosPath).doc(req.params.med_id).delete();
+        res.status(200).send(`Fue eliminado el medicamento: ${req.params.med_id}`);
     } catch (error) {
         res.status(400).send(`Error: ${error}`);
     }
@@ -756,19 +737,82 @@ app.patch('/stock/medicamento-id/:med_id', async (req, res) => {
 // ------------------------------------------------- \\
 //                    PREESCRIPCIÓN                  \\
 // ------------------------------------------------- \\
-// OBTENER TODOS LOS MEDICAMENTOS
-app.get('/preescipciones/', async (req, res) => {
+// CREAR NUEVA PRESCRIPCIÓN (DATOS)
+app.post('/prescipcion-d/', async (req, res) => {
+    // Almacenar en BD
     try {
-        const query = db.collection(preescripcionPath);
+        const newPres =  db.collection(preescripcionPath).doc();
+        await newPres.create({
+            status: 'pendiente',
+            fecha: Date(),
+            rutMedico: req.body.rutMedico,
+            rutPaciente: req.body.rutPaciente,
+            descripcion: req.body.descripcion,
+            idCentroMedico: req.body.idCentroMedico,
+            duracionTratamiento: req.body.duracionTratamiento
+        });
+        return res.status(201).json({'key' : `${newPres.id}`, 'mensaje' : `Se ha creado la nueva prescripción SIN MEDICAMENTOS `});
+    } catch (error) {
+        res.status(400).send(`Error: ${error}`);
+    }        
+});
+
+// CREAR NUEVA PRESCRIPCIÓN (MEDICAMENTOS)
+app.post('/prescipcion-m/:id_pres', async (req, res) => {
+
+    // Datos
+    const medicamentos = req.body.medicamentos;
+
+    try {
+        const medRef = db.collection(preescripcionPath).doc(req.params.id_pres);
+        const response = await medRef.update(req.body);
+        return res.status(204).send(`Fue actualizado el medicamento: ${req.body}`);
+    } catch (error) {
+        return res.status(400).send(`Error: ${error}`);
+    }
+});
+
+// OBTENER TODASS LAS PRESCRIPCIONES DE UN MEDICO
+app.get('/prescipciones/medico/:med_rut', async (req, res) => {
+    try {
+        const query = db.collection(preescripcionPath).where('rutMedico', '==', req.params.med_rut);
         const querySnapshot = await query.get();
         const docs = querySnapshot.docs;
 
         const response = docs.map((doc) => ({
             id: doc.id,
-            nombre: doc.data().nombre,
-            direccion: doc.data().direccion,
-            comuna: doc.data().comuna,
-            region: doc.data().region
+            fecha: doc.data().fecha,
+            status: doc.data().status,
+            rutMedico: doc.data().rutMedico,
+            rutPaciente: doc.data().rutPaciente,
+            descripcion: doc.data().descripcion,
+            idCentroMedico: doc.data().idCentroMedico,
+            duracionTratamiento: doc.data().duracionTratamiento,
+            medicamento: doc.data().medicamento
+        }));
+        return res.status(200).json(response);
+    } catch (error) {
+        res.status(400).send(`Error: ${error}`)
+    }        
+});
+
+// OBTENER TODASS LAS PRESCRIPCIONES DE UN PACIENTE
+app.get('/prescipciones/paciente/:pac_rut', async (req, res) => {
+    try {
+        const query = db.collection(preescripcionPath).where('rutPaciente', '==', req.params.pac_rut);
+        const querySnapshot = await query.get();
+        const docs = querySnapshot.docs;
+
+        const response = docs.map((doc) => ({
+            id: doc.id,
+            fecha: doc.data().fecha,
+            status: doc.data().status,
+            rutMedico: doc.data().rutMedico,
+            rutPaciente: doc.data().rutPaciente,
+            descripcion: doc.data().descripcion,
+            idCentroMedico: doc.data().idCentroMedico,
+            duracionTratamiento: doc.data().duracionTratamiento,
+            medicamento: doc.data().medicamento
         }));
         return res.status(200).json(response);
     } catch (error) {
@@ -777,7 +821,7 @@ app.get('/preescipciones/', async (req, res) => {
 });
 
 // OBTENER UNA PREESCRIPCION
-app.get('/preescipcion/:pre_id', async (req, res) => {
+app.get('/prescipcion/:pre_id', async (req, res) => {
     try {
         const doc = db.collection(preescripcionPath).doc(req.params.pre_id);
         const centro = await doc.get();
@@ -788,50 +832,71 @@ app.get('/preescipcion/:pre_id', async (req, res) => {
     }        
 });
 
-// CREAR NUEVO MEDICAMENTOS
-app.post('/preescipcion/', async (req, res) => {
-    try {
-        await db.collection(medicamentosPath)
-        .doc()
-        .create({
-            stock: req.body.stock,
-            nombre: req.body.nombre,
-            codigo: req.body.codigo,
-            gramaje: req.body.gramaje,
-            cantidad: req.body.cantidad,
-            contenido: req.body.contenido,
-            fabricante: req.body.fabricante,
-            descripcion: req.body.descripcion,
-            idCentroMedico: req.body.idCentroMedico
-        });
-        return res.status(201).send(`Nuevo medicamento creado: ${req.body.nombre}`);
-    } catch (error) {
-        res.status(400).send(`Error: ${error}`);
-    }        
-});
-
-// ACTUALIZAR UN MEDICAMENTO
-app.patch('/medicamento/:med_id', async (req, res) => {
-    try {
-        const updatedDoc = await admin.firebaseHelper.firestore
-            .updateDocument(db, medicamentosPath, req.params.med_id, req.body);
-        res.status(204).send(`Fue actualizado el medicamento: ${updatedDoc}`);
-    } catch (error) {
-        res.status(400).send(`Error: ${error}`);
-    }
-});
-
 // ELIMINAR MEDICAMENTO 
-app.delete('/medicamento/:med_id', async (req, res) => {
+app.delete('/prescipcion/:pre_id', async (req, res) => {
     try {
-        const deletedMed = await admin.firebaseHelper.firestore
-            .deleteDocument(db, medicamentosPath, req.params.med_id);
-        res.status(204).send(`Fue eliminado el medicamento: ${deletedMed}`);
+        const preRef = db.collection(preescripcionPath).doc(req.params.pre_id).delete();
+        res.status(200).send(`La prescripción fue eliminada: ${req.params.pre_id}`);
     } catch (error) {
         res.status(400).send(`Error: ${error}`);
     }
 });
 
+
+
+// ------------------------------------------------- \\
+//                   NOTIFICACIONES                  \\
+// ------------------------------------------------- \\
+// NOTIFICACIÓN POR NUEVO STOCK
+app.post('/notificacion/new-stock/', async (req, res) => {
+    return res.status(100).send('Metodo no operativo.')
+});
+
+// NOTIFICAR POR CORREO ELECTRÓNICO
+app.post('/notificacion/correo/', async (req, res) => {
+
+    // Datos
+    const remitentes = req.body.remitentes;
+    const stockDisponible = req.body.stockDisponible;
+    const nombreMedicamento = req.body.nombreMedicamento;
+    const nombreCentroMedico = req.body.nombreCentroMedico;
+
+    // Enviar correo
+    const respons = mailer(remitentes, nombreMedicamento, nombreCentroMedico, stockDisponible);
+    if (respons == 200){
+        res.status(200).send(`Mensaje enviado`);
+    }else{
+        res.status(400).send(`Error. Mensaje no enviado.`);
+    }
+});
+
+app.post('/notificacion/wsp/', async (req, res) => {
+
+    // Datos
+    const remitentes = req.body.remitentes;
+    const stockDisponible = req.body.stockDisponible;
+    const nombreMedicamento = req.body.nombreMedicamento;
+    const nombreCentroMedico = req.body.nombreCentroMedico;
+
+    // Configurar wsp
+    var params = {
+        'to': '+56976423354',
+        'from': 'e22d1dc8-d9d1-4070-8da8-7d703df148fd',
+        'type': 'text',
+        'content': {
+          'text': 'WhatsApp de prueba!',
+          'disableUrlPreview': false
+        }
+      };
+      
+      // Enviar wsp
+      messagebird.conversations.send(params, function (err, response) {
+        if (err) {
+          return console.log(err);
+        }
+        console.log(response);
+      });
+});
 
 //---------------------------------------------------
 exports.webApi = functions.https.onRequest(app);
