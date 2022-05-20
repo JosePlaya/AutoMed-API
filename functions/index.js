@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 const { body, validationResult, param } = require('express-validator');
 const { validate, clean, format, getCheckDigit } = require('rut.js');
 // const { mailer } = require('./email.js');
-//var messagebird = require('messagebird')('HbN2vflvdwndrCNqFkcsAB5Hs');
+//var messagebird = require('messagebird')('*');
 
 
 admin.initializeApp();

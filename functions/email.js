@@ -7,8 +7,8 @@ async function mailer(remitentes, nombreMedicamento, nombreCentroMedico, stockDi
     const transporter = nodemailer.createTransport({
         service: "Gmail",
         auth: {
-            user: "noreply.automed@gmail.com",
-            pass: "AutoMed123"
+            user: "*",
+            pass: "*"
         }
     })
     console.log('...transporter created: ',transporter);
