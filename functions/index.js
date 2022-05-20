@@ -853,22 +853,22 @@ app.post('/notificacion/new-stock/', async (req, res) => {
 });
 
 // NOTIFICAR POR CORREO ELECTRÓNICO
-// app.post('/notificacion/correo/', async (req, res) => {
+app.post('/notificacion/correo/', async (req, res) => {
 
-//     // Datos
-//     const remitentes = req.body.remitentes;
-//     const stockDisponible = req.body.stockDisponible;
-//     const nombreMedicamento = req.body.nombreMedicamento;
-//     const nombreCentroMedico = req.body.nombreCentroMedico;
+    // Datos
+    const remitentes = req.body.remitentes;
+    const stockDisponible = req.body.stockDisponible;
+    const nombreMedicamento = req.body.nombreMedicamento;
+    const nombreCentroMedico = req.body.nombreCentroMedico;
 
-//     // Enviar correo
-//     const respons = mailer(remitentes, nombreMedicamento, nombreCentroMedico, stockDisponible);
-//     if (respons == 200){
-//         res.status(200).send(`Mensaje enviado`);
-//     }else{
-//         res.status(400).send(`Error. Mensaje no enviado.`);
-//     }
-// });
+    // Enviar correo
+    const respons = mailer(remitentes, nombreMedicamento, nombreCentroMedico, stockDisponible);
+    if (respons == 200){
+        res.status(200).send(`Mensaje enviado`);
+    }else{
+        res.status(400).send(`Error. Mensaje no enviado.`);
+    }
+});
 
 app.post('/notificacion/wsp/', async (req, res) => {
 
