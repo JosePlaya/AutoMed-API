@@ -759,13 +759,11 @@ app.post('/prescipcion-d/', async (req, res) => {
 
 // CREAR NUEVA PRESCRIPCIÓN (MEDICAMENTOS)
 app.post('/prescipcion-m/:id_pres', async (req, res) => {
-
-    // Datos
-    const medicamentos = req.body.medicamentos;
-
     try {
         const medRef = db.collection(preescripcionPath).doc(req.params.id_pres);
-        const response = await medRef.update(req.body);
+        const response = await medRef.set({
+            medicamentos: req.body
+          }, { merge: true });
         return res.status(204).send(`Fue actualizado el medicamento: ${req.body}`);
     } catch (error) {
         return res.status(400).send(`Error: ${error}`);
