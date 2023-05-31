@@ -126,7 +126,7 @@ const prescripcionesCreationValidators = [
 //                      STATUS                       \\
 // ------------------------------------------------- \\
 // STATUS
-app.get('/status/', (rep, res) => {
+app.get('/status/', (req, res) => {
     return res.status(200).send('Web API: ONLINE')
 });
 
